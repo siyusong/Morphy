@@ -7,9 +7,11 @@ import Data.List
  
 
 type Cross = (Int, Int)
-data Line = Line Cross Cross
+data Line = Line Cross Cross deriving (Eq, Ord)
 data Board = Board (Set.Set Cross) (Set.Set Line)
 type Moves = [Line]
+
+
 
 isLineValid :: Line -> Bool
 isLineValid (Line (x, y) (x', y')) | x' == (x + 4) && y == y'       = True
@@ -33,3 +35,6 @@ makeCrossList (Line (x, y) (x', y')) | x' == x + 4 && y == y'       = [(x,y), (x
 
 
 makeMove :: Line -> Board -> Maybe Board
+makeMove l (Board cset lset) 
+        | not (isLineValid l) || canMakeMove l (Board cset lset) = Nothing
+        | otherwise = Just (Board cset (Set.insert l lset))                                
