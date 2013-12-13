@@ -21,7 +21,7 @@ isLineValid (Line (x, y) (x', y')) | x' == (x + 4) && y == y'       = True
 
 
 canMakeMove :: Line -> Board -> Bool
-canMakeMove l (Board cset lset _) = not $ any (isOverlapped l) (Set.toList lset)
+canMakeMove l (Board _ lset _) = not $ any (isOverlapped l) (Set.toList lset)
 
 isOverlapped :: Line -> Line -> Bool
 isOverlapped l1 l2 = length (Data.List.intersect (makeCrossList l1) (makeCrossList l2)) > 1
@@ -32,6 +32,11 @@ makeCrossList (Line (x, y) (x', y')) | x' == x + 4 && y == y'       = [(x,y), (x
                                    | x' == x && y' == y + 4       = [(x,y), (x,y+1),(x, y+2), (x,y+3), (x,y+4)]
                                    | x' == x + 4 && y' == y + 4   = [(x,y),(x+1,y+1),(x+2,y+2),(x+3,y+3),(x+4, y+4)]
                                    | otherwise                     = []
+
+crossValid :: Line -> Board -> [Cross]
+crossValid l (Board cset _ _) = filter (`Set.member` cset) lst
+                                    where lst = makeCrossList l
+                                          
 
 
 makeMove :: Line -> Board -> Maybe Board
