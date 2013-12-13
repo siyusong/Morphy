@@ -8,7 +8,7 @@ import Data.List
 
 type Cross = (Int, Int)
 data Line = Line Cross Cross deriving (Eq, Ord)
-data Board = Board (Set.Set Cross) (Set.Set Line)
+data Board = Board (Set.Set Cross) (Set.Set Line) Moves
 type Moves = [Line]
 
 
@@ -21,7 +21,7 @@ isLineValid (Line (x, y) (x', y')) | x' == (x + 4) && y == y'       = True
 
 
 canMakeMove :: Line -> Board -> Bool
-canMakeMove l (Board cset lset) = not $ any (isOverlapped l) (Set.toList lset)
+canMakeMove l (Board cset lset _) = not $ any (isOverlapped l) (Set.toList lset)
 
 isOverlapped :: Line -> Line -> Bool
 isOverlapped l1 l2 = length (Data.List.intersect (makeCrossList l1) (makeCrossList l2)) > 1
@@ -35,6 +35,6 @@ makeCrossList (Line (x, y) (x', y')) | x' == x + 4 && y == y'       = [(x,y), (x
 
 
 makeMove :: Line -> Board -> Maybe Board
-makeMove l (Board cset lset) 
-        | not (isLineValid l) || canMakeMove l (Board cset lset) = Nothing
-        | otherwise = Just (Board cset (Set.insert l lset))                                
+makeMove l (Board cset lset lst) 
+        | not (isLineValid l) || canMakeMove l (Board cset lset lst) = Nothing
+        | otherwise = Just (Board cset (Set.insert l lset) (l:lst))                                
