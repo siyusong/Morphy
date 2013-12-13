@@ -53,4 +53,5 @@ makeNewBoard l (Board cset lset lst clist) (c:cst) = Board (Set.insert c cset) (
 
 undoMove :: Board -> Maybe Board
 undoMove (Board _ _ [] _) = Nothing
-undoMove (Board cset lset (l:ls) clist) = Just $ Board cset (Set.delete l lset) ls clist
+undoMove (Board cset lset (l:ls) []) = Just $ Board cset (Set.delete l lset) ls []
+undoMove (Board cset lset (l:ls) (c:clist)) = Just $ Board cset (Set.delete l lset) ls clist
