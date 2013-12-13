@@ -1,7 +1,7 @@
 {-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults #-}
 import Prelude 
-import Test.QuickCheck hiding (elements)
-import Control.Monad 
+--import Test.QuickCheck hiding (elements)
+--import Control.Monad 
 import qualified Data.Set as Set
 import Data.List
  
@@ -38,3 +38,7 @@ makeMove :: Line -> Board -> Maybe Board
 makeMove l (Board cset lset lst) 
         | not (isLineValid l) || canMakeMove l (Board cset lset lst) = Nothing
         | otherwise = Just (Board cset (Set.insert l lset) (l:lst))                                
+
+undoMove :: Board -> Maybe Board
+undoMove (Board _ _ []) = Nothing
+undoMove (Board cset lset (l:ls)) = Just $ Board cset (Set.delete l lset) ls
