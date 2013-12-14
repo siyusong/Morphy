@@ -1,16 +1,36 @@
 {-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults #-}
+
+module Morphy where
+
 import Prelude 
 --import Test.QuickCheck hiding (elements)
 --import Control.Monad 
+import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List
  
 
 type Cross = (Int, Int)
 data Line = Line Cross Cross deriving (Eq, Ord)
-data Board = Board (Set.Set Cross) (Set.Set Line) Moves [Cross]
+data Board = Board (Set Cross) (Set Line) Moves [Cross]
 type Moves = [Line]
 
+game5T :: Set Cross
+game5T = Set.fromList $ [
+                                (-2, -2), (-1, -2), ( 0, -2), ( 1, -2),
+                                (-2, -1),                     ( 1, -1),
+                                (-2,  0),                     ( 1,  0),
+  (-5,  1), (-4,  1), (-3,  1), (-2,  1),                     ( 1,  1),  ( 2,  1),  ( 3,  1),  ( 4,  1),
+  (-5,  2),                                                                                    ( 4,  2),
+  (-5,  3),                                                                                    ( 4,  3),
+  (-5,  4), (-4,  4), (-3,  4), (-2,  4),                     ( 1,  4),  ( 2,  4),  ( 3,  4),  ( 4,  4),
+                                (-2,  5),                     ( 1,  5),
+                                (-2,  6),                     ( 1,  6),
+                                (-2,  7), (-1,  7), ( 0,  7), ( 1,  7)
+  ]
+
+initBoard :: Board
+initBoard = Board game5T Set.empty [] [] 
 
 
 isLineValid :: Line -> Bool
