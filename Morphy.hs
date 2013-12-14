@@ -3,15 +3,15 @@
 module Morphy where
 
 import Prelude 
---import Test.QuickCheck hiding (elements)
---import Control.Monad 
+import Test.QuickCheck
+import Control.Monad 
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List
  
 
 type Cross = (Int, Int)
-data Line = Line Cross Cross deriving (Eq, Ord)
+data Line = Line Cross Cross deriving (Show, Eq, Ord)
 data Board = Board (Set Cross) (Set Line) Moves [Cross]
 type Moves = [Line]
 
@@ -39,6 +39,17 @@ isLineValid (Line (x, y) (x', y')) | x' == (x + 4) && y == y'       = True
                                    | x' == (x + 4) && y' == (y + 4) = True
                                    | otherwise                      = False
 
+instance Arbitrary Line where
+  arbitrary = liftM2 Line (return (0, 0)) arbCross where
+    arbCross = liftM2 (,) (elements [2, 4, 6]) (elements [2, 4, 6])
+
+prop_validLine :: Line -> Property
+prop_validLine x = length (makeCrossList x) == 5 && validOrientation x ==> isLineValid x where
+  validOrientation (Line (x1, y1) (x2, y2)) | x1 == x2           = True
+                                            | y1 == y2           = True
+                                            | x1 - x2 == y1 - y2 = True
+                                            | x1 - x2 == y2 - y1 = True
+                                            | otherwise          = False
 
 canMakeMove :: Line -> Board -> Bool
 canMakeMove l (Board _ lset _ _) = not $ any (isOverlapped l) (Set.toList lset)
