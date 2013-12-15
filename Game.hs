@@ -68,6 +68,9 @@ played board point = Map.member point (pointState board)
 playable :: Board -> Bool
 playable b = length (validMoves b) > 0
 
+score :: Board -> Int
+score board = length (Map.keys (pointState board)) - length game5
+
 validLines :: Board -> Point -> [Line]
 validLines board p = do
     orientation <- [minBound..]
@@ -122,6 +125,11 @@ test_validMoves = "validMoves" ~: TestList [
       L (2,9) H Positive, L (3,9) H Positive, L (3,6) V Positive,
       L (6,6) V Positive
     ]
+  ]
+
+test_score :: Test
+test_score = "score" ~: TestList [
+  "initBoard" ~: score (makeBoard game5) ~?= 0
   ]
 
 makeMove :: Board -> Line -> Maybe Board
@@ -179,9 +187,28 @@ instance Arbitrary Board where
         (_:_) -> liftM2 tryMakeMove (return b) (elements moves)
         _     -> return b
 
-prop_undoMove :: Board -> Property
-prop_undoMove board =
+validBoard :: Board -> Bool
+validBoard board = replayLines (makeBoard game5) (lineState board) where
+  replayLines _ [] = True
+  replayLines b ls = 
+    case playableLine b ls of
+      Just l  -> replayLines (tryMakeMove b l) (filter (/= l) ls)
+      Nothing -> False
+  playableLine b ls = find (\l -> l `elem` validMoves b) ls
+
+prop_makeMove_score :: Board -> Property
+prop_makeMove_score board = 
+  playable board ==> score (tryMakeFirstMove board) == score board + 1
+
+prop_makeMove_validity :: Board -> Bool
+prop_makeMove_validity = validBoard
+
+prop_undoMove_rt :: Board -> Property
+prop_undoMove_rt board =
   playable board ==> tryUndoMove (tryMakeFirstMove board) == board
+
+prop_undoMove_validity :: Board -> Bool
+prop_undoMove_validity = validBoard.tryUndoMove.tryMakeFirstMove
 
 linePoints :: Line -> [Point]
 linePoints l = aux 0 [] where
