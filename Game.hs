@@ -5,14 +5,17 @@ import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.List
+import Data.Maybe
 import Control.Monad 
+import Test.QuickCheck hiding (Positive, Negative)
 import Test.HUnit 
 
 type Point = (Int, Int)
-data Line = L { getPoint       :: Point
+data Line = VL -- "void" (fake) line, used to indicating initial marks
+          | L { getPoint       :: Point
               , getOrientation :: Orientation
               , getDirection   :: Direction } 
-              deriving (Show, Ord)
+          deriving (Show, Ord)
 data Orientation = H  -- horizontal
                  | V  -- vertical
                  | A  -- ascending
@@ -24,6 +27,9 @@ data Board = B { lineState :: [Line]
                deriving (Show, Eq)
 
 instance Eq Line where
+  (==) VL VL = True
+  (==) VL _  = False
+  (==) _  VL = False
   (==) l1 l2 = Set.fromList (linePoints l1) == Set.fromList (linePoints l2)
 
 lineLength :: Int
@@ -54,10 +60,13 @@ game5 = [
   ]
 
 makeBoard :: [Point] -> Board
-makeBoard points = B [] (Map.fromList $ map (\p -> (p, [])) points)
+makeBoard points = B [] (Map.fromList $ map (\p -> (p, [VL])) points)
 
 played :: Board -> Point -> Bool
 played board point = Map.member point (pointState board)
+
+playable :: Board -> Bool
+playable b = length (validMoves b) > 0
 
 validLines :: Board -> Point -> [Line]
 validLines board p = do
@@ -128,6 +137,51 @@ makeMove board line = do
         _      -> Nothing
       where
         newPointState p = Map.insertWith (++) p [line] (pointState board)
+
+undoMove :: Board -> Maybe Board
+undoMove board = do
+    case lineState board of
+      (l:ls) -> return $ removePoint l (board { lineState = ls })
+      _      -> Nothing
+  where
+    removePoint l b = b { pointState = cleanEmpty (foldr (removeLineFromMap l) (pointState b) (linePoints l)) }
+    removeLineFromMap l p m = Map.adjust (filter (/= l)) p m      
+    cleanEmpty = Map.filter (not.null)
+
+tryMakeFirstMove :: Board -> Board
+tryMakeFirstMove board =
+  case validMoves board of
+    (l:_) -> fromMaybe board (makeMove board l)
+    _     -> board
+
+tryMakeMove :: Board -> Line -> Board
+tryMakeMove board l = fromMaybe board (makeMove board l)
+
+tryUndoMove :: Board -> Board
+tryUndoMove board =
+  case lineState board of 
+    (_:_) -> fromMaybe board (undoMove board)
+    _     -> board
+
+instance Arbitrary Orientation where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary Direction where
+  arbitrary = elements [minBound..]
+
+instance Arbitrary Board where
+  arbitrary = frequency [ (1, return $ makeBoard game5)
+                        , (5, suchThat (tryMakeRandomMove arbitrary) playable) ] where
+    tryMakeRandomMove board = do
+      b <- board
+      let moves = validMoves b
+      case moves of
+        (_:_) -> liftM2 tryMakeMove (return b) (elements moves)
+        _     -> return b
+
+prop_undoMove :: Board -> Property
+prop_undoMove board =
+  playable board ==> tryUndoMove (tryMakeFirstMove board) == board
 
 linePoints :: Line -> [Point]
 linePoints l = aux 0 [] where
