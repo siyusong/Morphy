@@ -36,9 +36,9 @@ lineLength :: Int
 lineLength = 5
 
 orientationMultiplier :: Orientation -> (Int, Int)
-orientationMultiplier H = (1, 0)
-orientationMultiplier V = (0, 1)
-orientationMultiplier A = (1, -1)
+orientationMultiplier H = (0, 1)
+orientationMultiplier V = (1, 0)
+orientationMultiplier A = (-1, 1)
 orientationMultiplier D = (1, 1)
 
 directionMultiplier :: Direction -> Int
@@ -47,16 +47,16 @@ directionMultiplier Negative = -1
 
 game5 :: [Point]
 game5 = [
-                    (3,0),(4,0),(5,0),(6,0),
-                    (3,1),            (6,1),
-                    (3,2),            (6,2),
-  (0,3),(1,3),(2,3),(3,3),            (6,3),(7,3),(8,3),(9,3),
-  (0,4),                                                (9,4),
-  (0,5),                                                (9,5),
-  (0,6),(1,6),(2,6),(3,6),            (6,6),(7,6),(8,6),(9,6),
-                    (3,7),            (6,7),
-                    (3,8),            (6,8),
-                    (3,9),(4,9),(5,9),(6,9)
+                    (0,3),(0,4),(0,5),(0,6),
+                    (1,3),            (1,6),
+                    (2,3),            (2,6),
+  (3,0),(3,1),(3,2),(3,3),            (3,6),(3,7),(3,8),(3,9),
+  (4,0),                                                (4,9),
+  (5,0),                                                (5,9),
+  (6,0),(6,1),(6,2),(6,3),            (6,6),(6,7),(6,8),(6,9),
+                    (7,3),            (7,6),
+                    (8,3),            (8,6),
+                    (9,3),(9,4),(9,5),(9,6)
   ]
 
 makeBoard :: [Point] -> Board
@@ -114,15 +114,15 @@ test_validMoves :: Test
 test_validMoves = "validMoves" ~: TestList [
   "initBoard" ~: Set.fromList (validMoves (makeBoard game5)) ~?= 
     Set.fromList [
-      L (2,0) H Positive, L (3,-1) V Positive, L (6,-1) V Positive,
-      L (3,0) H Positive, L (0,4) A  Positive, L (5,0) D Positive,
-      L (0,3) H Positive, L (5,3) H Positive, L (-1,3) H Positive,
-      L (0,2) V Positive, L (3,0) V Positive, L (6,0) V Positive,
-      L (9,2) V Positive, L (6,3) H Positive, L (-1,6) H Positive,
-      L (6,6) H Positive, L (0,3) V Positive, L (0,5) D Positive,
-      L (3,5) V Positive, L (0,6) H Positive, L (5,6) H Positive,
-      L (6,5) V Positive, L (5,9) A Positive, L (9,3) V Positive,
-      L (2,9) H Positive, L (3,9) H Positive, L (3,6) V Positive,
+      L (0,2) H Positive, L (-1,3) V Positive, L (-1,6) V Positive,
+      L (0,3) H Positive, L (4,0) A Positive, L (0,5) D Positive,
+      L (3,0) H Positive, L (3,5) H Positive, L (3,-1) H Positive,
+      L (2,0) V Positive, L (0,3) V Positive, L (0,6) V Positive,
+      L (2,9) V Positive, L (3,6) H Positive, L (6,-1) H Positive,
+      L (6,6) H Positive, L (3,0) V Positive, L (5,0) D Positive,
+      L (5,3) V Positive, L (6,0) H Positive, L (6,5) H Positive,
+      L (5,6) V Positive, L (9,5) A Positive, L (3,9) V Positive,
+      L (9,2) H Positive, L (9,3) H Positive, L (6,3) V Positive,
       L (6,6) V Positive
     ]
   ]
