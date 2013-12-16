@@ -2,6 +2,7 @@ import Game
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Test.HUnit 
+import qualified Data.List as List
 
 drawPoint :: Board -> Map Point String
 drawPoint board = Map.fromList $ map (\x -> (transform x, "O")) points
@@ -60,7 +61,28 @@ testFindNewIndex = "test" ~: TestList [
         ]
 
 showBoard :: Board -> Map Point String
-showBoard board = drawLinks board $ drawPoint board 
+showBoard board = drawLinks board $ drawPoint board
+
+printMap :: Board -> String
+printMap b = unlines $ map (unwords . map (showM m)) indices
+          where points = Map.keys $ pointState b
+                xs = map fst points
+                ys = map snd points
+                x1 = minimum xs - 1
+                x2 = maximum xs + 1
+                y1 = minimum ys - 1
+                y2 = maximum ys + 1 
+                indices = [[(x, y) | x <- [x1..x2]] | y <- [y1..y2]]
+                m = showBoard b 
+
+showM :: Map Point String -> Point -> String
+showM m p = aux len s
+            where s = Map.findWithDefault " " p m
+                  len = length s
+                  aux 1 s = s
+                  aux _ s | (List.isInfixOf "/") s && (List.isInfixOf "\\" s) = "X"
+                          | otherwise = " "
+
 
 
 
