@@ -68,11 +68,11 @@ printMap b = unlines $ map (unwords . map (showM m)) indices
           where points = Map.keys $ pointState b
                 xs = map fst points
                 ys = map snd points
-                x1 = minimum xs - 1
-                x2 = maximum xs + 1
-                y1 = minimum ys - 1
-                y2 = maximum ys + 1 
-                indices = [[(x, y) | x <- [x1..x2]] | y <- [y1..y2]]
+                x1 = 1 + 2 * (minimum xs - 1)
+                x2 = 1 + 2 * (maximum xs + 1)
+                y1 = 1 + 2 * (minimum ys - 1)
+                y2 = 1 + 2 * (maximum ys + 1 )
+                indices = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
                 m = showBoard b 
 
 showM :: Map Point String -> Point -> String
