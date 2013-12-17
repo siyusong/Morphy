@@ -85,7 +85,7 @@ showM m p = aux len s
                           | otherwise = s
 
 hintPoints :: Board -> [(Point, String)]
-hintPoints b = zip (map transform points) $ take len $ map (:[]) ['A'..]
+hintPoints b = zip (map transform points) $ take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])
             where points = validMovePoints b
                   len = length points
 
@@ -93,12 +93,25 @@ updatePointMap2 ::[(Point, String)] -> Map Point String -> Map Point String
 updatePointMap2 [] m = m
 updatePointMap2 (l:ls) m = updatePointMap2 ls (Map.insertWith (++) (fst l) (snd l) m)
 
---gameTurn b = do
---        putStr "Please input the x"
---        x <- getLine
---        putStr "Please input the y"
---        y <- getLine        
---        putStr (read x :: Int, read y :: Int)
+gameTurn :: Board -> IO()
+gameTurn b = do
+        putStr $ printMap b
+        putStr "All the hints are shown\n"
+        putStr "Please indicate which point you are going to play?\n"
+        x <- getLine
+        putStr x
+        putStr "\n"
+        let points = validMovePoints b
+        let len = length points 
+        let m = Map.fromList $ zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) points
+        --putStr $ show m
+        let p = Map.findWithDefault (100,100) x m
+        putStrLn $ show p
+        let ls = validLines b p
+        putStrLn $ show ls
+        gameTurn $ tryMakeMove b (head ls)
+
+
 
 
 
