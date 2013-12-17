@@ -96,6 +96,10 @@ updatePointMap2 (l:ls) m = updatePointMap2 ls (Map.insertWith (++) (fst l) (snd 
 gameTurn :: Board -> IO()
 gameTurn b = do
         putStr $ printMap b
+        let s = score b
+        putStr "The current score is "
+        putStr $ show s
+        putStr "\n"
         putStr "All the hints are shown\n"
         putStr "Please indicate which point you are going to play?\n"
         x <- getLine
