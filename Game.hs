@@ -9,6 +9,7 @@ import Data.Maybe
 import Control.Monad 
 import Test.QuickCheck hiding (Positive, Negative)
 import Test.HUnit 
+import Debug.Trace
 
 type Point = (Int, Int)
 data Line = VL -- "void" (fake) line, used to indicating initial marks
@@ -82,9 +83,19 @@ validLines board p = do
 
 adjacentPoints :: Board -> Point -> Orientation -> Direction -> Int
 adjacentPoints board point orientation direction = aux 0 where
-  aux i | i >= lineLength - 1 = i
-        | played board (movePoint (i + 1) point orientation direction) = aux (i + 1)
-        | otherwise = i
+  aux i =
+    let newPoint = (movePoint (i + 1) point orientation direction) in 
+    case () of 
+      _ | i >= lineLength - 1 -> i
+        | played board newPoint ->
+            if overlapped newPoint then i + 1
+                                   else aux (i + 1)
+        | otherwise -> i
+  overlapped :: Point -> Bool
+  overlapped point = 
+    case Map.lookup point (pointState board) of 
+      Just x -> orientation `elem` (map getOrientation (filter (/= VL) x))
+      Nothing -> undefined
 
 movePoint :: Int -> Point -> Orientation -> Direction -> Point
 movePoint n (x, y) orientation direction = (x + dx * n, y + dy * n) where
@@ -138,16 +149,15 @@ test_score = "score" ~: TestList [
 makeMove :: Board -> Line -> Maybe Board
 makeMove board line = do
     guard $ line `elem` (validMoves board)
-    insertPoint (insertLine board)
+    Just $ insertPoints (insertLine board) (linePoints line)
   where
     insertLine b = b { lineState = line : lineState b }
-    insertPoint b = do 
-      let point = filter (not.played b) (linePoints line)
-      case point of
-        (p:ps) -> return b { pointState = newPointState p }
-        _      -> Nothing
+    insertPoints b points = do 
+      case points of
+        (p:ps) -> insertPoints (b { pointState = newPointState b p }) ps
+        _      -> b
       where
-        newPointState p = Map.insertWith (++) p [line] (pointState board)
+        newPointState b p = Map.insertWith (++) p [line] (pointState b)
 
 undoMove :: Board -> Maybe Board
 undoMove board = do
@@ -190,6 +200,15 @@ instance Arbitrary Board where
         (_:_) -> liftM2 tryMakeMove (return b) (elements moves)
         _     -> return b
 
+  shrink b = case undoMove b of 
+               Just b' -> [b']
+               Nothing -> []  
+
+validBoardLineOverlap :: Board -> Bool
+validBoardLineOverlap b = and $ map (\p -> overlap p <= 1) pairs where
+  pairs = [ (l1, l2) | l1 <- lineState b, l2 <- lineState b, l1 /= l2 ]
+  overlap (l1, l2) = length $ linePoints l1 `intersect` linePoints l2
+
 validBoard :: Board -> Bool
 validBoard board = replayLines (makeBoard game5) (lineState board) where
   replayLines _ [] = True
@@ -202,6 +221,10 @@ validBoard board = replayLines (makeBoard game5) (lineState board) where
 prop_makeMove_score :: Board -> Property
 prop_makeMove_score board = 
   playable board ==> score (tryMakeFirstMove board) == score board + 1
+
+prop_makeMove_noOverlap :: Board -> Property
+prop_makeMove_noOverlap board = 
+  playable board ==> validBoardLineOverlap
 
 prop_makeMove_validity :: Board -> Bool
 prop_makeMove_validity = validBoard
