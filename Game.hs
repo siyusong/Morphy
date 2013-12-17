@@ -110,6 +110,9 @@ possibleMovePoints board = do
 validMoves :: Board -> [Line]
 validMoves board = concat [ validLines board point | point <- possibleMovePoints board ]
 
+validMovePoints :: Board -> [Point]
+validMovePoints board = filter (not.null.(validLines board)) (possibleMovePoints board)
+
 test_validMoves :: Test
 test_validMoves = "validMoves" ~: TestList [
   "initBoard" ~: Set.fromList (validMoves (makeBoard game5)) ~?= 
