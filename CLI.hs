@@ -61,7 +61,8 @@ testFindNewIndex = "test" ~: TestList [
         ]
 
 showBoard :: Board -> Map Point String
-showBoard board = drawLinks board $ drawPoint board
+showBoard board = updatePointMap2 (hintPoints board) m
+                where m = drawLinks board $ drawPoint board
 
 printMap :: Board -> String
 printMap b = unlines $ map (unwords . map (showM m)) indices
@@ -81,8 +82,26 @@ showM m p = aux len s
                   len = length s
                   aux 1 s = s
                   aux _ s | (List.isInfixOf "/") s && (List.isInfixOf "\\" s) = "X"
-                          | otherwise = " "
+                          | otherwise = s
+
+hintPoints :: Board -> [(Point, String)]
+hintPoints b = zip (map transform points) $ take len $ map (:[]) ['A'..]
+            where points = validMovePoints b
+                  len = length points
+
+updatePointMap2 ::[(Point, String)] -> Map Point String -> Map Point String
+updatePointMap2 [] m = m
+updatePointMap2 (l:ls) m = updatePointMap2 ls (Map.insertWith (++) (fst l) (snd l) m)
+
+--gameTurn b = do
+--        putStr "Please input the x"
+--        x <- getLine
+--        putStr "Please input the y"
+--        y <- getLine        
+--        putStr (read x :: Int, read y :: Int)
 
 
+
+ --putStr $ printMap $ tryMakeMove (tryMakeMove (tryMakeMove (tryMakeMove (tryMakeFirstMove (makeBoard game5 )) (L (0,2) H Positive)) (L (3,5) H Positive)) (L (4,6) V Negative)) (L (0,2) D Positive )
 
 
