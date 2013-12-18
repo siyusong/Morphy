@@ -137,13 +137,22 @@ showLineChoices :: [(String, Line)] -> IO()
 showLineChoices [] = do
                         putStrLn "Please make a choice using the letter indicator."
 showLineChoices (l:ls) = do
-                            putStr $ show (fst l)
+                            putStr (fst l)
                             putStr "-> "
-                            putStrLn $ show (snd l)
+                            putStr $ show $ getPoint (snd l)
+
+                            putStrLn $ drawDirection $ getOrientation (snd l)
                             showLineChoices ls
 
 main :: IO()
 main = gameTurn $ makeBoard game5
+
+
+drawDirection :: Orientation -> String
+drawDirection H = " -"
+drawDirection V = " |"
+drawDirection A = " /"
+drawDirection D = " \\"
 
 
 
