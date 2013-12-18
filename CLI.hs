@@ -119,6 +119,5 @@ gameTurn b = do
 
 
 
- --putStr $ printMap $ tryMakeMove (tryMakeMove (tryMakeMove (tryMakeMove (tryMakeFirstMove (makeBoard game5 )) (L (0,2) H Positive)) (L (3,5) H Positive)) (L (4,6) V Negative)) (L (0,2) D Positive )
 
 
