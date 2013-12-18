@@ -108,12 +108,44 @@ gameTurn b = do
         let points = validMovePoints b
         let len = length points 
         let m = Map.fromList $ zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) points
-        --putStr $ show m
         let p = Map.findWithDefault (100,100) x m
         putStrLn $ show p
         let ls = validLines b p
         putStrLn $ show ls
-        gameTurn $ tryMakeMove b (head ls)
+        case (length ls) of 
+            0 -> invalidMove b
+            1 -> gameTurn $ tryMakeMove b (head ls)
+            l -> lineSelection ls b
+
+invalidMove :: Board -> IO()
+invalidMove b = do
+                 putStr "Invalid Move"
+                 gameTurn b
+
+lineSelection :: [Line] -> Board -> IO()
+lineSelection ls b = do
+                        let lines = zip (take (length ls) $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) ls
+                        let m = Map.fromList lines
+                        putStrLn "You have following line selections: "
+                        showLineChoices lines
+                        x <- getLine
+                        putStr x
+                        gameTurn $ tryMakeMove b $ Map.findWithDefault (L (100,100) H Positive) x m
+
+
+showLineChoices :: [(String, Line)] -> IO()
+showLineChoices [] = do
+                        putStrLn "Please make a choice using the letter indicator."
+showLineChoices (l:ls) = do
+                            putStr $ show (fst l)
+                            putStr "-> "
+                            putStrLn $ show (snd l)
+                            showLineChoices ls
+
+main :: IO()
+main = gameTurn $ makeBoard game5
+
+
 
 
 
