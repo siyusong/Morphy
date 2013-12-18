@@ -97,30 +97,37 @@ gameTurn :: Board -> IO()
 gameTurn b = do
         putStr $ printMap b
         let s = score b
-        putStr "The current score is "
+        putStr "The Current Score is "
         putStr $ show s
         putStr "\n"
         putStr "All the hints are shown\n"
-        putStr "Please indicate which point you are going to play?\n"
+        putStr "Please indicate which point you are going to play? or Type '?' for MENU\n"
         x <- getLine
-        putStr x
-        putStr "\n"
-        let points = validMovePoints b
-        let len = length points 
-        let m = Map.fromList $ zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) points
-        let p = Map.findWithDefault (100,100) x m
-        putStrLn $ show p
-        let ls = validLines b p
-        putStrLn $ show ls
-        case (length ls) of 
-            0 -> invalidMove b
-            1 -> gameTurn $ tryMakeMove b (head ls)
-            l -> lineSelection ls b
+        --putStr x
+        --putStr "\n"
+        case x of 
+            "?" -> menu b
+            r   -> gameflow b r
+
 
 invalidMove :: Board -> IO()
 invalidMove b = do
                  putStr "Invalid Move"
                  gameTurn b
+
+gameflow :: Board -> String -> IO()
+gameflow b x = do
+                let points = validMovePoints b
+                let len = length points 
+                let m = Map.fromList $ zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) points
+                let p = Map.findWithDefault (100,100) x m
+                --putStrLn $ show p
+                let ls = validLines b p
+                --putStrLn $ show ls
+                case (length ls) of 
+                    0 -> invalidMove b
+                    1 -> gameTurn $ tryMakeMove b (head ls)
+                    l -> lineSelection ls b
 
 lineSelection :: [Line] -> Board -> IO()
 lineSelection ls b = do
@@ -155,6 +162,11 @@ drawDirection A = " /"
 drawDirection D = " \\"
 
 
+menu :: Board -> IO()
+menu b = do
+            putStrLn "Quit, Save, Load, Undo or Replay?"
+            x <- getLine
+            putStrLn ""
 
 
 
