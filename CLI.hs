@@ -13,43 +13,58 @@ import System.IO
 import System.Console.ANSI
 import System.Random (randomRIO)
 
+type Game a = StateT Board IO a
+
 main :: IO ()
 main = do
   hSetBuffering stdout LineBuffering
-  gameTurn $ makeBoard game5
+  runStateT gameTurn (makeBoard game5)
+  return ()
 
-gameTurn :: Board -> IO ()
-gameTurn b = do
-  clearScreen
-  setCursorPosition 0 0 
-  hideCursor
-  putStr $ mapStringWithHints b
-  showCursor
-  putStrLn $ "Score: " ++ show (score b)
-  putStrLn "Please indicate which point you are going to play?"
-  putStrLn "(Type '.' for a random move or '?' for more options)"
-  putStr ": " >> hFlush stdout
-  x <- getChar
+io :: IO a -> Game a
+io = lift
+
+gameTurn :: Game ()
+gameTurn = do
+  printBoard
+  b <- get
+  io $ putStrLn $ "Score: " ++ show (score b)
+  io $ putStrLn "Please indicate which point you are going to play?"
+  io $ putStrLn "(Type '.' for a random move or '?' for more options)"
+  io $ putStr ": " >> hFlush stdout
+  x <- io getChar
   case x of 
-    '?' -> menu b
-    '.' -> randomMove b
-    c   -> gameFlow b c
+    '?' -> menu
+    '.' -> randomMove
+    c   -> gameFlow c
 
-invalidMove :: Board -> IO ()
-invalidMove b = do
-  putStrLn "Invalid Move"
-  gameTurn b
+printBoard :: Game ()
+printBoard = do
+  b <- get
+  io $ clearScreen
+  io $ setCursorPosition 0 0 
+  io $ hideCursor
+  io $ putStr $ mapStringWithHints b
+  io $ showCursor
 
-randomMove :: Board -> IO ()
-randomMove b = do 
+invalidMove :: Game ()
+invalidMove = do
+  io $ putStrLn "Invalid Move"
+  gameTurn
+
+randomMove :: Game ()
+randomMove = do 
+  b <- get
   let points = validMovePoints b
   case points of
-    [] -> invalidMove b
+    [] -> invalidMove
     _  -> do 
-      p <- pickRandomElement points
+      p <- io $ pickRandomElement points
       case validLines b p of 
-          []    -> invalidMove b
-          (l:_) -> gameTurn $ tryMakeMove b l
+          []    -> invalidMove
+          (l:_) -> do
+            put $ tryMakeMove b l
+            gameTurn
 
 pickRandomElement :: [a] -> IO a
 pickRandomElement l = do
@@ -61,82 +76,102 @@ makeAlphabetMap ls = Map.fromList $ zip (take len alphabets) ls where
   len = length ls
   alphabets = ['a'..'z'] ++ ['A'..'Z']
 
-gameFlow :: Board -> Char -> IO ()
-gameFlow b x = do
+gameFlow :: Char -> Game ()
+gameFlow x = do
+  b <- get
   let points = validMovePoints b
   case Map.lookup x (makeAlphabetMap points) of 
     Just p -> do
       case validLines b p of 
-        []  -> invalidMove b
-        [l] -> gameTurn $ tryMakeMove b l 
-        ls  -> lineSelection b ls
-    Nothing -> invalidMove b
+        []  -> invalidMove
+        [l] -> do
+          put $ tryMakeMove b l
+          gameTurn
+        ls  -> lineSelection ls
+    Nothing -> invalidMove
 
-lineSelection :: Board -> [Line] -> IO ()
-lineSelection b ls = do
-  putStrLn "You have following line selections: "
+lineSelection :: [Line] -> Game ()
+lineSelection ls = do
+  io $ putStrLn "You have following line selections: "
   let m = makeAlphabetMap ls
-  showLineChoices m
-  x <- getChar
+  io $ showLineChoices m
+
+  b <- get
+  x <- io getChar
   case Map.lookup x m of
-    Just l  -> gameTurn $ tryMakeMove b l
-    Nothing -> invalidMove b
-
-showLineChoices :: Map Char Line -> IO ()
-showLineChoices m = do
-  putStrLn "Please make a choice using the letter indicator."
-  mapM_ showLineChoice (Map.toList m)
+    Just l  -> do 
+      put $ tryMakeMove b l
+      gameTurn
+    Nothing -> invalidMove
   where
-    showLineChoice (alphabet, line) = 
-      putStrLn $ [alphabet] ++ " -> " ++ show line
+  showLineChoices m = do
+    putStrLn "Please make a choice using the letter indicator."
+    mapM_ showLineChoice (Map.toList m)
+  showLineChoice (alphabet, line) = 
+    putStrLn $ [alphabet] ++ " -> " ++ show line
 
-menu :: Board -> IO ()
-menu b = do
-  putStrLn ""
-  mapM_ putStrUnderlineFirst [ "Continue, "
+menu :: Game ()
+menu = do
+  io $ putStrLn ""
+  io $ mapM_ putStrUnderlineFirst [ "Continue, "
                              , "Save, "
                              , "Load, "
                              , "Undo, "
                              , "Replay, or "
                              , "Quit?"
                              ]
-  putStr "\n: " >> hFlush stdout
-  x <- getChar
-  cursorUp 3
-  clearFromCursorToScreenEnd
+  io $ putStr "\n: " >> hFlush stdout
+  x <- io getChar
+  io $ cursorUp 3
+  io $ clearFromCursorToScreenEnd
+
+  b <- get
   case toLower x of 
-    'c' -> gameTurn b
+    'c' -> gameTurn
     'q' -> return ()
     'u' ->
       case undoMove b of
-        Just  x -> putStrLn "Undo Succuess." >> gameTurn x
-        Nothing -> putStrLn "Undo Failed"    >> menu b
+        Just x -> do 
+          io $ putStrLn "Undo Succuess." 
+          put x
+          gameTurn
+        Nothing -> do
+          io $ putStrLn "Undo Failed"
+          menu
     's' -> do
-      putStrLn "Saving game to save.txt..."
-      writeFile "save.txt" (serializeBoard b)
-      menu b
+      io $ putStrLn "Saving game to save.txt..."
+      io $ writeFile "save.txt" (serializeBoard b)
+      menu
     'l' -> do
-      x <- readFile "save.txt"
+      x <- io $ readFile "save.txt"
       case loadBoard x of
-        Left err -> putStrLn err             >> menu b
-        Right s  -> putStrLn "Game Loaded."  >> gameTurn s
+        Left err -> do
+          io $ putStrLn err
+          menu
+        Right s -> do
+          io $ putStrLn "Game Loaded."
+          put s
+          gameTurn
     'r' -> do
       let ls = reverse $ lineState b
-      replayMoves (makeBoard game5) ls 
-      menu b
-    _ -> menu b
+      put $ makeBoard game5
+      replayMoves ls 
+      menu
+    _ -> menu
 
-replayMoves :: Board -> [Line] -> IO ()
-replayMoves b lns = do 
-    clearScreen
-    setCursorPosition 0 0
-    hideCursor
-    putStr $ mapStringWithOutHints b
-    showCursor
+replayMoves :: [Line] -> Game ()
+replayMoves lns = do 
+    io $ clearScreen
+    io $ setCursorPosition 0 0
+    io $ hideCursor
+    b <- get
+    io $ putStr $ mapStringWithOutHints b
+    io $ showCursor
     case lns of
       (l:ls) -> do
-        threadDelay 300000
-        replayMoves (tryMakeMove b l) ls
+        io $ threadDelay 300000
+        put $ tryMakeMove b l
+        replayMoves ls
       _ -> return ()                    
 
 putStrUnderlineFirst :: String -> IO ()
