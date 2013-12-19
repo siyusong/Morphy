@@ -1,8 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 import Game
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Test.HUnit 
 import qualified Data.List as List
+import System.Console.ANSI
+import System.Console.Rainbow
+import System.IO
 
 drawPoint :: Board -> Map Point String
 drawPoint board = Map.fromList $ map (\x -> (transform x, "O")) points
@@ -64,8 +69,16 @@ showBoard :: Board -> Map Point String
 showBoard board = updatePointMap2 (hintPoints board) m
                 where m = drawLinks board $ drawPoint board
 
-printMap :: Board -> String
-printMap b = unlines $ map (unwords . map (showM m)) indices
+printMapString :: String -> IO ()
+printMapString str = do 
+    term <- termFromEnv
+    putChunks term (map (\c -> fromString [c] <> getColor c) str) where
+        getColor c = if c `elem` ['a'..'z'] ++ ['A'..'N']
+                        then c256_f_grey
+                        else c256_f_white
+
+boardToString :: Board -> String
+boardToString b = unlines $ map (unwords . map (showM m)) indices
           where points = Map.keys $ pointState b
                 xs = map fst points
                 ys = map snd points
@@ -95,13 +108,17 @@ updatePointMap2 (l:ls) m = updatePointMap2 ls (Map.insertWith (++) (fst l) (snd 
 
 gameTurn :: Board -> IO()
 gameTurn b = do
-        putStr $ printMap b
+        clearScreen
+        setCursorPosition 0 0 
+        hideCursor
+        printMapString $ boardToString b
         let s = score b
         putStr "The Current Score is "
         putStr $ show s
         putStr "\n"
         putStr "All the hints are shown\n"
         putStr "Please indicate which point you are going to play? or Type '?' for MENU\n"
+        showCursor
         x <- getLine
         --putStr x
         --putStr "\n"
@@ -157,7 +174,9 @@ showLineChoices (l:ls) = do
                             showLineChoices ls
 
 main :: IO()
-main = gameTurn $ makeBoard game5
+main = do
+    hSetBuffering stdout $ LineBuffering
+    gameTurn $ makeBoard game5
 
 
 drawDirection :: Orientation -> String
@@ -169,7 +188,8 @@ drawDirection D = " \\"
 
 menu :: Board -> IO()
 menu b = do
-            putStrLn "Quit, Save, Load, Undo, Continue or Replay?"
+            mapM_ putStrUnderlineFirst ["Quit, ", "Save, ", "Load, ", "Undo, ", "Continue or ", "Replay?"]
+            putStrLn ""
             x <- getLine
             putStrLn ""
             case x of 
@@ -178,6 +198,15 @@ menu b = do
                 "U" -> menuUndo b
                 "S" -> saveMenu b
                 "L" -> loadMenu b
+
+putStrUnderlineFirst :: String -> IO ()
+putStrUnderlineFirst [] = return ()
+putStrUnderlineFirst (c:cs) = do
+    setSGR [SetUnderlining SingleUnderline]
+    putChar c
+    setSGR []
+    putStr cs
+            
 
 menuUndo :: Board -> IO()
 menuUndo b = do
