@@ -298,7 +298,7 @@ lineP = do
   orientation <- orientationP
   spaces
   direction <- directionP
-  eolP
+  eof <|> skipMany eolP
   return $ L point orientation direction
 
 linesP :: GenParser Char st [Line]
