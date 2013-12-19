@@ -4,6 +4,7 @@ import qualified Data.Map as Map
 import Test.HUnit 
 import qualified Data.List as List
 import System.Random as Random
+import Control.Concurrent as Control
 
 drawPoint :: Board -> Map Point String
 drawPoint board = Map.fromList $ map (\x -> (transform x, "O")) points
@@ -62,20 +63,30 @@ testFindNewIndex = "test" ~: TestList [
         ]
 
 showBoard :: Board -> Map Point String
-showBoard board = updatePointMap2 (hintPoints board) m
-                where m = drawLinks board $ drawPoint board
+showBoard board = updatePointMap2 (hintPoints board) (showBoardWOHints board)
+
+showBoardWOHints :: Board -> Map Point String 
+showBoardWOHints board = drawLinks board $ drawPoint board
+
+generatePoints :: Board -> [[(Int, Int)]]
+generatePoints b = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
+                  where points = Map.keys $ pointState b
+                        xs = map fst points
+                        ys = map snd points
+                        x1 = 1 + 2 * (minimum xs - 1)
+                        x2 = 1 + 2 * (maximum xs + 1)
+                        y1 = 1 + 2 * (minimum ys - 1)
+                        y2 = 1 + 2 * (maximum ys + 1 )                
 
 printMap :: Board -> String
-printMap b = unlines $ map (unwords . map (showM m)) indices
-          where points = Map.keys $ pointState b
-                xs = map fst points
-                ys = map snd points
-                x1 = 1 + 2 * (minimum xs - 1)
-                x2 = 1 + 2 * (maximum xs + 1)
-                y1 = 1 + 2 * (minimum ys - 1)
-                y2 = 1 + 2 * (maximum ys + 1 )
-                indices = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
-                m = showBoard b 
+printMap b = unlines $ map (unwords . map (showM m)) ps
+          where m = showBoard b
+                ps = generatePoints b
+
+toStringBoardWithOutHints :: Board -> String
+toStringBoardWithOutHints b = unlines $ map (unwords . map (showM m)) ps
+          where m = showBoardWOHints b
+                ps = generatePoints b
 
 showM :: Map Point String -> Point -> String
 showM m p = aux len s
@@ -194,6 +205,8 @@ menu b = do
                 "U" -> menuUndo b
                 "S" -> saveMenu b
                 "L" -> loadMenu b
+                "R" -> replayMenu b
+
 
 menuUndo :: Board -> IO()
 menuUndo b = do
@@ -225,6 +238,24 @@ loadMenu b = do
                     Right s -> do
                                     putStrLn "Game Loaded."
                                     gameTurn s
+
+replayMenu :: Board -> IO()
+replayMenu b = do 
+                let ls = reverse $ lineState b
+
+                reMove ls $ makeBoard game5
+                menu b
+
+reMove :: [Line] -> Board -> IO()
+reMove [] b = putStr $ toStringBoardWithOutHints b
+reMove (l:ls) b = do 
+                    
+                    putStr $ toStringBoardWithOutHints b
+                    Control.threadDelay 1000000
+                    reMove ls $ tryMakeMove b l
+
+
+
 
 
 
