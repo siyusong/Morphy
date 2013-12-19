@@ -7,8 +7,6 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe
 import Control.Monad 
-import Test.QuickCheck hiding (Positive, Negative, replay)
-import Test.HUnit 
 import Text.ParserCombinators.Parsec hiding (Line)
 
 type Point = (Int, Int)
@@ -139,28 +137,6 @@ validMoves board = concat [ validLines board point | point <- possibleMovePoints
 validMovePoints :: Board -> [Point]
 validMovePoints board = filter (not.null.(validLines board)) (possibleMovePoints board)
 
-test_validMoves :: Test
-test_validMoves = "validMoves" ~: TestList [
-  "initBoard" ~: Set.fromList (validMoves (makeBoard game5)) ~?= 
-    Set.fromList [
-      L (0,2) H Positive, L (-1,3) V Positive, L (-1,6) V Positive,
-      L (0,3) H Positive, L (4,0) A Positive, L (0,5) D Positive,
-      L (3,0) H Positive, L (3,5) H Positive, L (3,-1) H Positive,
-      L (2,0) V Positive, L (0,3) V Positive, L (0,6) V Positive,
-      L (2,9) V Positive, L (3,6) H Positive, L (6,-1) H Positive,
-      L (6,6) H Positive, L (3,0) V Positive, L (5,0) D Positive,
-      L (5,3) V Positive, L (6,0) H Positive, L (6,5) H Positive,
-      L (5,6) V Positive, L (9,5) A Positive, L (3,9) V Positive,
-      L (9,2) H Positive, L (9,3) H Positive, L (6,3) V Positive,
-      L (6,6) V Positive
-    ]
-  ]
-
-test_score :: Test
-test_score = "score" ~: TestList [
-  "initBoard" ~: score (makeBoard game5) ~?= 0
-  ]
-
 makeMove :: Board -> Line -> Maybe Board
 makeMove board line = do
     guard $ line `elem` (validMoves board)
@@ -199,26 +175,6 @@ tryUndoMove board =
     (_:_) -> fromMaybe board (undoMove board)
     _     -> board
 
-instance Arbitrary Orientation where
-  arbitrary = elements [minBound..]
-
-instance Arbitrary Direction where
-  arbitrary = elements [minBound..]
-
-instance Arbitrary Board where
-  arbitrary = frequency [ (1, return $ makeBoard game5)
-                        , (5, suchThat (tryMakeRandomMove arbitrary) playable) ] where
-    tryMakeRandomMove board = do
-      b <- board
-      let moves = validMoves b
-      case moves of
-        (_:_) -> liftM2 tryMakeMove (return b) (elements moves)
-        _     -> return b
-
-  shrink b = case undoMove b of 
-               Just b' -> [b']
-               Nothing -> []  
-
 validBoardLineOverlap :: Board -> Bool
 validBoardLineOverlap b = and $ map (\p -> overlap p <= 1) pairs where
   pairs = [ (l1, l2) | l1 <- lineState b, l2 <- lineState b, l1 /= l2 ]
@@ -232,24 +188,6 @@ validBoard board = replayLines (makeBoard game5) (lineState board) where
       Just l  -> replayLines (tryMakeMove b l) (filter (/= l) ls)
       Nothing -> False
   playableLine b ls = find (\l -> l `elem` validMoves b) ls
-
-prop_makeMove_score :: Board -> Property
-prop_makeMove_score board = 
-  playable board ==> score (tryMakeFirstMove board) == score board + 1
-
-prop_makeMove_noOverlap :: Board -> Property
-prop_makeMove_noOverlap board = 
-  playable board ==> validBoardLineOverlap
-
-prop_makeMove_validity :: Board -> Bool
-prop_makeMove_validity = validBoard
-
-prop_undoMove_rt :: Board -> Property
-prop_undoMove_rt board =
-  playable board ==> tryUndoMove (tryMakeFirstMove board) == board
-
-prop_undoMove_validity :: Board -> Bool
-prop_undoMove_validity = validBoard.tryUndoMove.tryMakeFirstMove
 
 linePoints :: Line -> [Point]
 linePoints l = aux 0 [] where
@@ -324,9 +262,3 @@ replay previousLines = playNext (makeBoard game5) previousLines where
 serializeBoard :: Board -> String
 serializeBoard b = foldr appendLine "" (lineState b) where
   appendLine l s = s ++ show l ++ "\n"
-
-prop_parseBoard_rt :: Board -> Bool
-prop_parseBoard_rt b =
-  case loadBoard (serializeBoard b) of
-    Left _ -> False 
-    Right b' -> b == b'
