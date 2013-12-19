@@ -8,6 +8,8 @@ import qualified Data.List as List
 import System.Console.ANSI
 import System.Console.Rainbow
 import System.IO
+import System.Random as Random
+import Control.Concurrent as Control
 
 drawPoint :: Board -> Map Point String
 drawPoint board = Map.fromList $ map (\x -> (transform x, "O")) points
@@ -66,8 +68,20 @@ testFindNewIndex = "test" ~: TestList [
         ]
 
 showBoard :: Board -> Map Point String
-showBoard board = updatePointMap2 (hintPoints board) m
-                where m = drawLinks board $ drawPoint board
+showBoard board = updatePointMap2 (hintPoints board) (showBoardWOHints board)
+
+showBoardWOHints :: Board -> Map Point String 
+showBoardWOHints board = drawLinks board $ drawPoint board
+
+generatePoints :: Board -> [[(Int, Int)]]
+generatePoints b = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
+                  where points = Map.keys $ pointState b
+                        xs = map fst points
+                        ys = map snd points
+                        x1 = 1 + 2 * (minimum xs - 1)
+                        x2 = 1 + 2 * (maximum xs + 1)
+                        y1 = 1 + 2 * (minimum ys - 1)
+                        y2 = 1 + 2 * (maximum ys + 1 )                
 
 printMapString :: String -> IO ()
 printMapString str = do 
@@ -78,16 +92,14 @@ printMapString str = do
                         else c256_f_white
 
 boardToString :: Board -> String
-boardToString b = unlines $ map (unwords . map (showM m)) indices
-          where points = Map.keys $ pointState b
-                xs = map fst points
-                ys = map snd points
-                x1 = 1 + 2 * (minimum xs - 1)
-                x2 = 1 + 2 * (maximum xs + 1)
-                y1 = 1 + 2 * (minimum ys - 1)
-                y2 = 1 + 2 * (maximum ys + 1 )
-                indices = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
-                m = showBoard b 
+boardToString b = unlines $ map (unwords . map (showM m)) ps
+          where m = showBoard b
+                ps = generatePoints b
+
+toStringBoardWithOutHints :: Board -> String
+toStringBoardWithOutHints b = unlines $ map (unwords . map (showM m)) ps
+          where m = showBoardWOHints b
+                ps = generatePoints b
 
 showM :: Map Point String -> Point -> String
 showM m p = aux len s
@@ -117,13 +129,14 @@ gameTurn b = do
         putStr $ show s
         putStr "\n"
         putStr "All the hints are shown\n"
-        putStr "Please indicate which point you are going to play? or Type '?' for MENU\n"
+        putStr "Please indicate which point you are going to play? Type '.' for random move or Type '?' for MENU\n"
         showCursor
         x <- getLine
         --putStr x
         --putStr "\n"
         case x of 
             "?" -> menu b
+            "." -> randomMove b
             r   -> gameflow b r
 
 
@@ -131,6 +144,20 @@ invalidMove :: Board -> IO()
 invalidMove b = do
                  putStr "Invalid Move"
                  gameTurn b
+
+randomMove :: Board -> IO()
+randomMove b = do 
+              let points = validMovePoints b
+              let len = length points
+              case len of
+                0 -> invalidMove b
+                _ -> do 
+                        x <- Random.randomRIO (0,len - 1)
+                        let ls = validLines b (points !! x)
+                        --putStrLn $ show ls
+                        case (length ls) of 
+                            0 -> invalidMove b
+                            _ -> gameTurn $ tryMakeMove b (head ls)
 
 makeHashMap :: [a] ->[(String, a)]
 makeHashMap [] = []
@@ -198,6 +225,8 @@ menu b = do
                 "U" -> menuUndo b
                 "S" -> saveMenu b
                 "L" -> loadMenu b
+                "R" -> replayMenu b
+
 
 putStrUnderlineFirst :: String -> IO ()
 putStrUnderlineFirst [] = return ()
@@ -238,6 +267,24 @@ loadMenu b = do
                     Right s -> do
                                     putStrLn "Game Loaded."
                                     gameTurn s
+
+replayMenu :: Board -> IO()
+replayMenu b = do 
+                let ls = reverse $ lineState b
+
+                reMove ls $ makeBoard game5
+                menu b
+
+reMove :: [Line] -> Board -> IO()
+reMove [] b = putStr $ toStringBoardWithOutHints b
+reMove (l:ls) b = do 
+                    
+                    putStr $ toStringBoardWithOutHints b
+                    Control.threadDelay 1000000
+                    reMove ls $ tryMakeMove b l
+
+
+
 
 
 
