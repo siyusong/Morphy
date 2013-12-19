@@ -1,9 +1,10 @@
 module CLI where
 
-import Game
+import GameLogic
 import BoardPrinter
 
 import Control.Concurrent (threadDelay)
+import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.List as List

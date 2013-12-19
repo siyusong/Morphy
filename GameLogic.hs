@@ -1,4 +1,4 @@
-module Game where
+module GameLogic where
 
 import Data.Set (Set)
 import qualified Data.Set as Set

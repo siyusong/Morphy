@@ -1,6 +1,6 @@
 module BoardPrinter where
 
-import Game
+import GameLogic
 
 import Data.Map (Map)
 import qualified Data.Map as Map
