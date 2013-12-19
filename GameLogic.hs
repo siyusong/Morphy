@@ -1,6 +1,7 @@
+{-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults #-}
+
 module GameLogic where
 
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -105,8 +106,8 @@ adjacentPoints board point orientation direction = aux 0 where
                                    else aux (i + 1)
         | otherwise -> i
   overlapped :: Point -> Bool
-  overlapped point = 
-    case Map.lookup point (pointState board) of 
+  overlapped point' = 
+    case Map.lookup point' (pointState board) of 
       Just x -> orientation `elem` (map getOrientation (filter (/= VL) x))
       Nothing -> undefined
 
@@ -148,7 +149,7 @@ makeMove board line = do
         (p:ps) -> insertPoints (b { pointState = newPointState b p }) ps
         _      -> b
       where
-        newPointState b p = Map.insertWith (++) p [line] (pointState b)
+        newPointState b' p = Map.insertWith (++) p [line] (pointState b')
 
 undoMove :: Board -> Maybe Board
 undoMove board = do
@@ -206,28 +207,30 @@ eolP = try (string "\r\n") <|> string "\n" <|> string "\r"
 
 pointP :: GenParser Char st Point
 pointP = do
-  char '('
+  _ <- char '('
   x <- intP
-  char ','
+  _ <- char ','
   y <- intP
-  char ')'
+  _ <- char ')'
   return (x, y)
 
 orientationP :: GenParser Char st Orientation
 orientationP = do
   c <- oneOf "-|/\\"
-  return $ case c of 
-          '-' -> H
-          '|' -> V
-          '/' -> A
-          '\\' -> D
+  case c of 
+    '-' -> return H
+    '|' -> return V
+    '/' -> return A
+    '\\' -> return D
+    _ -> unexpected "Unknown orientation"
 
 directionP :: GenParser Char st Direction
 directionP = do
   c <- oneOf "+-"
-  return $ case c of 
-          '+' -> Positive
-          '-' -> Negative
+  case c of 
+    '+' -> return Positive
+    '-' -> return Negative
+    _ -> unexpected "Unknown direction"
 
 lineP :: GenParser Char st Line
 lineP = do

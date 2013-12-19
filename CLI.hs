@@ -1,3 +1,5 @@
+{-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults #-}
+
 module CLI where
 
 import GameLogic
@@ -7,8 +9,7 @@ import Control.Concurrent (threadDelay)
 import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.List as List
-import Data.Char (isAlpha, toLower)
+import Data.Char (toLower)
 import System.IO
 import System.Console.ANSI
 import System.Random (randomRIO)
@@ -19,7 +20,7 @@ main :: IO ()
 main = do
   hSetBuffering stdin NoBuffering
   hSetBuffering stdout LineBuffering
-  runStateT gameTurn (makeBoard game5)
+  _ <- runStateT gameTurn (makeBoard game5)
   return ()
 
 io :: IO a -> Game a
@@ -123,16 +124,16 @@ menu = do
                              , "Quit?"
                              ]
   io $ putStr "\n: " >> hFlush stdout
-  x <- io getChar
+  c <- io getChar
   b <- get
-  case toLower x of 
+  case toLower c of 
     'c' -> gameTurn
     'q' -> return ()
     'u' ->
       case undoMove b of
-        Just x -> do 
+        Just b' -> do 
           io $ putStrLn "Undo Succuess." 
-          put x
+          put b'
           gameTurn
         Nothing -> do
           clearAbove 3
@@ -144,8 +145,8 @@ menu = do
       io $ writeFile "save.txt" (serializeBoard b)
       menu
     'l' -> do
-      x <- io $ readFile "save.txt"
-      case loadBoard x of
+      f <- io $ readFile "save.txt"
+      case loadBoard f of
         Left err -> do
           io $ putStrLn err
           menu

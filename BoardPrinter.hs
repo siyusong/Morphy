@@ -1,3 +1,5 @@
+{-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults #-}
+
 module BoardPrinter where
 
 import GameLogic
@@ -76,10 +78,11 @@ mapStringWithOutHints b = unlines $ map (unwords.map (showPointMap m)) ps
 
 showPointMap :: Map Point String -> Point -> String
 showPointMap m p = 
-  case Map.findWithDefault " " p m of 
-    [c] -> [c]
-    s@(_:_) | '/' `elem` s && '\\' `elem` s -> "X"
-            | otherwise -> s
+  case Map.lookup p m of 
+    Nothing -> " "
+    Just s@(_:_) | '/' `elem` s && '\\' `elem` s -> "X"
+                 | otherwise -> s
+    Just s -> s
 
 hintPoints :: Board -> [(Point, String)]
 hintPoints b = zip (map transform points) $ take len alphabets

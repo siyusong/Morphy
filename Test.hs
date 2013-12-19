@@ -1,16 +1,18 @@
+{-# OPTIONS -Wall -fwarn-tabs -fno-warn-type-defaults -fno-warn-orphans #-}
+
 module Test where
 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Control.Monad 
 import Test.HUnit
-import Test.QuickCheck hiding (Positive, Negative, replay)
-import Game
+import Test.QuickCheck hiding (Positive, replay)
+import GameLogic
 import BoardPrinter
 
 main :: IO ()
 main = do
-  runTestTT unitTests
+  _ <- runTestTT unitTests
   quickCheck boardProperties
 
 -- HUnit tests
