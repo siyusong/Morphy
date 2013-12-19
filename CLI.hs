@@ -17,6 +17,7 @@ type Game a = StateT Board IO a
 
 main :: IO ()
 main = do
+  hSetBuffering stdin NoBuffering
   hSetBuffering stdout LineBuffering
   runStateT gameTurn (makeBoard game5)
   return ()
@@ -117,14 +118,12 @@ menu = do
                              , "Save, "
                              , "Load, "
                              , "Undo, "
-                             , "Replay, or "
+                             , "Replay, "
+                             , "New game or "
                              , "Quit?"
                              ]
   io $ putStr "\n: " >> hFlush stdout
   x <- io getChar
-  io $ cursorUp 3
-  io $ clearFromCursorToScreenEnd
-
   b <- get
   case toLower x of 
     'c' -> gameTurn
@@ -136,9 +135,11 @@ menu = do
           put x
           gameTurn
         Nothing -> do
-          io $ putStrLn "Undo Failed"
+          clearAbove 3
+          io $ putStrLn "Cannot Undo"
           menu
     's' -> do
+      clearAbove 3
       io $ putStrLn "Saving game to save.txt..."
       io $ writeFile "save.txt" (serializeBoard b)
       menu
@@ -157,7 +158,16 @@ menu = do
       put $ makeBoard game5
       replayMoves ls 
       menu
-    _ -> menu
+    'n' -> do
+      put $ makeBoard game5
+      gameTurn
+    _ -> clearAbove 2 >> menu
+    where 
+      clearAbove i = do
+        io $ cursorUp i
+        io $ setCursorColumn 0
+        io $ clearLine
+        io $ clearFromCursorToScreenEnd
 
 replayMoves :: [Line] -> Game ()
 replayMoves lns = do 
