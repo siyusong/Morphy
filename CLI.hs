@@ -125,12 +125,12 @@ gameTurn b = do
         hideCursor
         printMapString $ boardToString b
         let s = score b
+        showCursor
         putStr "The Current Score is "
         putStr $ show s
         putStr "\n"
         putStr "All the hints are shown\n"
-        putStr "Please indicate which point you are going to play? Type '.' for random move or Type '?' for MENU\n"
-        showCursor
+        putStr "Please indicate which point you are going to play?\nType '.' for random move or Type '?' for MENU\n"
         x <- getLine
         --putStr x
         --putStr "\n"
@@ -276,12 +276,17 @@ replayMenu b = do
                 menu b
 
 reMove :: [Line] -> Board -> IO()
-reMove [] b = putStr $ toStringBoardWithOutHints b
-reMove (l:ls) b = do 
-                    
-                    putStr $ toStringBoardWithOutHints b
-                    Control.threadDelay 1000000
-                    reMove ls $ tryMakeMove b l
+reMove lns b = do 
+    clearScreen
+    setCursorPosition 0 0
+    hideCursor
+    putStr $ toStringBoardWithOutHints b
+    showCursor
+    case lns of
+        (l:ls) -> do
+            Control.threadDelay 300000
+            reMove ls $ tryMakeMove b l
+        _ -> return ()                    
 
 
 
