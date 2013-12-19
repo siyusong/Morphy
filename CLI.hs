@@ -177,7 +177,7 @@ menu b = do
                 "Q" -> return ()
                 "U" -> menuUndo b
                 "S" -> saveMenu b
-                --"L" -> loadMenu b
+                "L" -> loadMenu b
 
 menuUndo :: Board -> IO()
 menuUndo b = do
@@ -192,10 +192,23 @@ menuUndo b = do
 saveMenu :: Board -> IO()
 saveMenu b = do 
                 let s = serializeBoard b
-                putStrLn "Game saved as follows: "
-                putStrLn s
+                putStrLn "Game saved"
+                --putStrLn s
+                writeFile "save.txt" s
                 menu b  
 
+loadMenu :: Board -> IO()
+loadMenu b = do
+                --putStrLn "Please input your saved game."
+                --x <- getLine
+                x <- readFile "save.txt"
+                case loadBoard x of
+                    Left err -> do
+                                    putStrLn err
+                                    menu b
+                    Right s -> do
+                                    putStrLn "Game Loaded."
+                                    gameTurn s
 
 
 
