@@ -56,7 +56,6 @@ pickRandomElement l = do
   return $ l !! i
 
 makeAlphabetMap :: [a] -> Map Char a
-makeAlphabetMap [] = Map.empty
 makeAlphabetMap ls = Map.fromList $ zip (take len alphabets) ls where
   len = length ls
   alphabets = ['a'..'z'] ++ ['A'..'Z']
