@@ -7,25 +7,40 @@ import qualified Data.Map as Map
 import Data.List
 import Data.Maybe
 import Control.Monad 
-import Test.QuickCheck hiding (Positive, Negative)
+import Test.QuickCheck hiding (Positive, Negative, replay)
 import Test.HUnit 
-import Debug.Trace
+import Text.ParserCombinators.Parsec hiding (Line)
 
 type Point = (Int, Int)
 data Line = VL -- "void" (fake) line, used to indicating initial marks
           | L { getPoint       :: Point
               , getOrientation :: Orientation
               , getDirection   :: Direction } 
-          deriving (Show, Ord)
+          deriving (Ord)
 data Orientation = H  -- horizontal
                  | V  -- vertical
                  | A  -- ascending
                  | D  -- descending
-                 deriving (Show, Eq, Ord, Enum, Bounded)
-data Direction = Positive | Negative deriving (Show, Eq, Ord, Enum, Bounded)
+                 deriving (Eq, Ord, Enum, Bounded)
+data Direction = Positive | Negative deriving (Eq, Ord, Enum, Bounded)
 data Board = B { lineState :: [Line]
                , pointState :: Map Point [Line] }
                deriving (Show, Eq)
+
+instance Show Line where
+  show VL = "VL"
+  show (L point orientation direction) =
+    unwords [show point, show orientation, show direction]
+
+instance Show Orientation where
+  show H = "-"
+  show V = "|"
+  show A = "/"
+  show D = "\\"
+
+instance Show Direction where
+  show Positive = "+"
+  show Negative = "-"
 
 instance Eq Line where
   (==) VL VL = True
@@ -241,3 +256,77 @@ linePoints l = aux 0 [] where
   aux i acc | i == lineLength = acc
             | otherwise       = aux (i + 1) (newPoint:acc)
     where newPoint = movePoint i (getPoint l) (getOrientation l) (getDirection l)
+
+intP :: GenParser Char st Int
+intP = do
+  n <- string "-" <|> return []
+  s <- many1 digit
+  return $ (read (n ++ s) :: Int)
+
+eolP :: GenParser Char st String
+eolP = try (string "\r\n") <|> string "\n" <|> string "\r"
+
+pointP :: GenParser Char st Point
+pointP = do
+  char '('
+  x <- intP
+  char ','
+  y <- intP
+  char ')'
+  return (x, y)
+
+orientationP :: GenParser Char st Orientation
+orientationP = do
+  c <- oneOf "-|/\\"
+  return $ case c of 
+          '-' -> H
+          '|' -> V
+          '/' -> A
+          '\\' -> D
+
+directionP :: GenParser Char st Direction
+directionP = do
+  c <- oneOf "+-"
+  return $ case c of 
+          '+' -> Positive
+          '-' -> Negative
+
+lineP :: GenParser Char st Line
+lineP = do
+  point <- pointP
+  spaces
+  orientation <- orientationP
+  spaces
+  direction <- directionP
+  eolP
+  return $ L point orientation direction
+
+linesP :: GenParser Char st [Line]
+linesP = do
+  line <- many lineP
+  eof
+  return line
+
+loadBoard :: String -> Either String Board
+loadBoard input =
+  case parse linesP "Data Format Error" input of
+    Left err -> Left $ show err
+    Right ls -> replay ls
+
+replay :: [Line] -> Either String Board
+replay previousLines = playNext (makeBoard game5) previousLines where
+  playNext b [] = Right b
+  playNext b (l:ls) =
+    case makeMove b l of
+      Just b' -> playNext b' ls
+      Nothing -> Left $ "Invalid Move: " ++ show l
+
+serializeBoard :: Board -> String
+serializeBoard b = foldr appendLine "" (lineState b) where
+  appendLine l s = s ++ show l ++ "\n"
+
+prop_parseBoard_rt :: Board -> Bool
+prop_parseBoard_rt b =
+  case loadBoard (serializeBoard b) of
+    Left _ -> False 
+    Right b' -> b == b'
