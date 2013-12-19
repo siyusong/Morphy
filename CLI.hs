@@ -6,7 +6,9 @@ import qualified Data.Map as Map
 import Test.HUnit 
 import qualified Data.List as List
 import System.Console.ANSI
-import System.Console.Rainbow
+-- Installing readline package on OS X:
+-- http://stackoverflow.com/questions/8291137
+import System.Console.Readline (readline)
 import System.IO
 import System.Random as Random
 import Control.Concurrent as Control
@@ -85,11 +87,10 @@ generatePoints b = [[(x, y) | y <- [y1..y2]] | x <- [x1..x2]]
 
 printMapString :: String -> IO ()
 printMapString str = do 
-    term <- termFromEnv
-    putChunks term (map (\c -> fromString [c] <> getColor c) str) where
+    putStr $ concat (map (\c -> getColor c ++ [c]) str) where
         getColor c = if c `elem` ['a'..'z'] ++ ['A'..'N']
-                        then c256_f_grey
-                        else c256_f_white
+                        then "\ESC[90m"
+                        else "\ESC[39m"
 
 boardToString :: Board -> String
 boardToString b = unlines $ map (unwords . map (showM m)) ps
@@ -131,14 +132,12 @@ gameTurn b = do
         putStr "\n"
         putStr "All the hints are shown\n"
         putStr "Please indicate which point you are going to play?\nType '.' for random move or Type '?' for MENU\n"
-        x <- getLine
-        --putStr x
-        --putStr "\n"
+        x <- readline ": "
         case x of 
-            "?" -> menu b
-            "." -> randomMove b
-            r   -> gameflow b r
-
+            Just "?" -> menu b
+            Just "." -> randomMove b
+            Just r   -> gameflow b r
+            Nothing  -> return () 
 
 invalidMove :: Board -> IO()
 invalidMove b = do
@@ -217,15 +216,20 @@ menu :: Board -> IO()
 menu b = do
             mapM_ putStrUnderlineFirst ["Quit, ", "Save, ", "Load, ", "Undo, ", "Continue or ", "Replay?"]
             putStrLn ""
-            x <- getLine
+            x <- readline ": "
+            cursorUp 3
+            clearFromCursorToScreenEnd
             putStrLn ""
             case x of 
-                "C" -> gameTurn b
-                "Q" -> return ()
-                "U" -> menuUndo b
-                "S" -> saveMenu b
-                "L" -> loadMenu b
-                "R" -> replayMenu b
+                Nothing  -> gameTurn b
+                Just "C" -> gameTurn b
+                Just "Q" -> return ()
+                Just "U" -> menuUndo b
+                Just "S" -> saveMenu b
+                Just "L" -> loadMenu b
+                Just "R" -> replayMenu b
+                _ -> do 
+                    menu b
 
 
 putStrUnderlineFirst :: String -> IO ()
