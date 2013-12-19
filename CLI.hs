@@ -176,7 +176,8 @@ menu b = do
                 "C" -> gameTurn b
                 "Q" -> return ()
                 "U" -> menuUndo b
-                --"S" -> 
+                "S" -> saveMenu b
+                --"L" -> loadMenu b
 
 menuUndo :: Board -> IO()
 menuUndo b = do
@@ -186,7 +187,14 @@ menuUndo b = do
                                 gameTurn x
                     Nothing -> do
                                 putStrLn "Undo Failed"
-                                menu b  
+                                menu b
+
+saveMenu :: Board -> IO()
+saveMenu b = do 
+                let s = serializeBoard b
+                putStrLn "Game saved as follows: "
+                putStrLn s
+                menu b  
 
 
 
