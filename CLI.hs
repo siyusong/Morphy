@@ -3,6 +3,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Test.HUnit 
 import qualified Data.List as List
+import System.Random as Random
 
 drawPoint :: Board -> Map Point String
 drawPoint board = Map.fromList $ map (\x -> (transform x, "O")) points
@@ -101,12 +102,13 @@ gameTurn b = do
         putStr $ show s
         putStr "\n"
         putStr "All the hints are shown\n"
-        putStr "Please indicate which point you are going to play? or Type '?' for MENU\n"
+        putStr "Please indicate which point you are going to play? Type '.' for random move or Type '?' for MENU\n"
         x <- getLine
         --putStr x
         --putStr "\n"
         case x of 
             "?" -> menu b
+            "." -> randomMove b
             r   -> gameflow b r
 
 
@@ -114,6 +116,20 @@ invalidMove :: Board -> IO()
 invalidMove b = do
                  putStr "Invalid Move"
                  gameTurn b
+
+randomMove :: Board -> IO()
+randomMove b = do 
+              let points = validMovePoints b
+              let len = length points
+              case len of
+                0 -> invalidMove b
+                _ -> do 
+                        x <- Random.randomRIO (0,len - 1)
+                        let ls = validLines b (points !! x)
+                        --putStrLn $ show ls
+                        case (length ls) of 
+                            0 -> invalidMove b
+                            _ -> gameTurn $ tryMakeMove b (head ls)
 
 makeHashMap :: [a] ->[(String, a)]
 makeHashMap [] = []
