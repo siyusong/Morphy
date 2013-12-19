@@ -42,15 +42,13 @@ invalidMove b = do
 randomMove :: Board -> IO ()
 randomMove b = do 
   let points = validMovePoints b
-  let len = length points
-  case len of
-    0 -> invalidMove b
-    _ -> do 
+  case points of
+    [] -> invalidMove b
+    _  -> do 
       p <- pickRandomElement points
-      let ls = validLines b p
-      case (length ls) of 
-          0 -> invalidMove b
-          _ -> gameTurn $ tryMakeMove b (head ls)
+      case validLines b p of 
+          []    -> invalidMove b
+          (l:_) -> gameTurn $ tryMakeMove b l
 
 pickRandomElement :: [a] -> IO a
 pickRandomElement l = do
