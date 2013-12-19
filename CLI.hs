@@ -115,11 +115,16 @@ invalidMove b = do
                  putStr "Invalid Move"
                  gameTurn b
 
+makeHashMap :: [a] ->[(String, a)]
+makeHashMap [] = []
+makeHashMap ls = zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) ls
+                where len = length ls
+
+
 gameflow :: Board -> String -> IO()
 gameflow b x = do
                 let points = validMovePoints b
-                let len = length points 
-                let m = Map.fromList $ zip (take len $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) points
+                let m = Map.fromList $ makeHashMap points
                 let p = Map.findWithDefault (100,100) x m
                 --putStrLn $ show p
                 let ls = validLines b p
@@ -131,7 +136,7 @@ gameflow b x = do
 
 lineSelection :: [Line] -> Board -> IO()
 lineSelection ls b = do
-                        let lines = zip (take (length ls) $ map (:[]) (['a'..'z'] ++ ['A'..'Z'])) ls
+                        let lines = makeHashMap ls
                         let m = Map.fromList lines
                         putStrLn "You have following line selections: "
                         showLineChoices lines
@@ -164,10 +169,24 @@ drawDirection D = " \\"
 
 menu :: Board -> IO()
 menu b = do
-            putStrLn "Quit, Save, Load, Undo or Replay?"
+            putStrLn "Quit, Save, Load, Undo, Continue or Replay?"
             x <- getLine
             putStrLn ""
+            case x of 
+                "C" -> gameTurn b
+                "Q" -> return ()
+                "U" -> menuUndo b
+                --"S" -> 
 
+menuUndo :: Board -> IO()
+menuUndo b = do
+                case undoMove b of
+                    Just x -> do
+                                putStrLn "Undo Succuess."
+                                gameTurn x
+                    Nothing -> do
+                                putStrLn "Undo Failed"
+                                menu b  
 
 
 
